@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-
+import csv
 
 def gather_books(url, books_list):
     response = requests.get(url)
@@ -9,6 +9,8 @@ def gather_books(url, books_list):
         print("Nope!")
     else:
         soup = BeautifulSoup(response.text, "html.parser")
+        header_title = soup.find("li", class_="active").text
+        file_title = header_title + ".csv"
         iterable = soup.find_all("h3")
         for i in iterable:
             part_url = i.find("a").get("href")
@@ -18,6 +20,10 @@ def gather_books(url, books_list):
             next_page_part_url = soup.find("li", class_="next").find("a").get("href")
             gather_books(construct_url_2(response.url, next_page_part_url), books_list)
 
+
+    with open(file_title, "w") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow([header_title])
     return books_list
 
 
@@ -42,7 +48,7 @@ def construct_url_2(url, part_url):
 
 # print(type(gather_books("https://books.toscrape.com/catalogue/category/books/travel_2/index.html")))
 print(gather_books("https://books.toscrape.com/catalogue/category/books/travel_2/index.html", books_list = []))
-print(gather_books("https://books.toscrape.com/catalogue/category/books/mystery_3/page-1.html", books_list = []))
+# print(gather_books("https://books.toscrape.com/catalogue/category/books/mystery_3/page-1.html", books_list = []))
 # print(gather_books("https://books.toscrape.com/catalogue/category/books/travel_2/index.html"))
 # var = "\n".join(gather_books("https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html", books_list = []))
 # print(var)
