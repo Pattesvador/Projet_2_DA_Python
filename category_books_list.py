@@ -21,9 +21,18 @@ def gather_books(url, books_list):
             next_page_part_url = soup.find("li", class_="next").find("a").get("href")
             gather_books(construct_url_2(response.url, next_page_part_url), books_list)
 
-    with open(file_title, "w") as csvfile:
+    with open(file_title, "w", newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow([header_title])
+        writer.writerow([
+            "Product page URL",
+            "Universal product code",
+            "Title", "Price including tax",
+            "Price excluding tax", "Number available",
+            "Product description",
+            "Review rating",
+            "Image URL"
+        ])
 
     return [books_list, file_title]
 
