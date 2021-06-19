@@ -1,8 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
+import csv
 
 
-def scrap_page(url):
+def scrap_page(url, file_title):
     response = requests.get(url)
     if not response:
         print("Veuillez saisir une adresse valide.")
@@ -16,16 +17,30 @@ def scrap_page(url):
         info_page["price_excluding_tax"] = soup.find("th", text="Price (excl. tax)").next_sibling.text[1:]
         info_page["number_available"] = soup.find("th", text="Availability").next_sibling.next_sibling.text
         product_description = soup.find(id="product_description")
+
         if product_description:
             info_page["product_description"] = soup.find(id="product_description").next_sibling.next_sibling.text
         else:
             info_page["product_description"] = "No product description available"
+
         info_page["category"] = soup.find_all("a")[3].text
         info_page["review_rating"] = soup.find("p", class_="star-rating").attrs["class"][1]
         info_page["image_url"] = "https://books.toscrape.com/" + soup.find("img").attrs["src"]
+
+        with open(file_title, "a", encoding="utf-8", newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(info_page.values())
+
+        img_url = requests.get(info_page["image_url"])
+        img_file = info_page["title"] + ".jpg"
+        with open(img_file, "wb") as file:
+            file.write(img_url.content)
+
     return info_page
 
-print(scrap_page("https://books.toscrape.com/catalogue/alice-in-wonderland-alices-adventures-in-wonderland-1_5/index.html"))
+
+print(scrap_page("https://books.toscrape.com/catalogue/in-a-dark-dark-wood_963/index.html", "Mystery.csv"))
+# print(scrap_page("https://books.toscrape.com/catalogue/alice-in-wonderland-alices-adventures-in-wonderland-1_5/index.html", "Mystery.csv"))
 # print(scrap_page("https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"))
 # for i in scrap_page("https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html").values():
 #    print(i, "\n")
