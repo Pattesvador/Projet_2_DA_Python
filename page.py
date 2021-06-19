@@ -31,6 +31,11 @@ def scrap_page(url, file_title):
             writer = csv.writer(csvfile)
             writer.writerow(info_page.values())
 
+        img_url = requests.get(info_page["image_url"])
+        img_file = info_page["title"] + ".jpg"
+        with open(img_file, "wb") as file:
+            file.write(img_url.content)
+
     return info_page
 
 
