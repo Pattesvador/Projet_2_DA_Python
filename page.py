@@ -1,42 +1,45 @@
 import requests
 from bs4 import BeautifulSoup
 import csv
+import os
 
 
-def scrap_page(url, file_title):
+def scrap_page(url, datas_file_path):
     response = requests.get(url)
     if not response:
         print("Veuillez saisir une adresse valide.")
     else:
+        response.encoding = "utf-8"
         info_page = {}
         soup = BeautifulSoup(response.text, "html.parser")
         info_page["product_page_url"] = response.url
         info_page["universal_product_code"] = soup.find("th", text="UPC").next_sibling.text
         info_page["title"] = soup.find("div", class_="col-sm-6 product_main").h1.text
-        info_page["price_including_tax"] = soup.find("th", text="Price (incl. tax)").next_sibling.text[1:]
-        info_page["price_excluding_tax"] = soup.find("th", text="Price (excl. tax)").next_sibling.text[1:]
+        print("Téléchargement du livre ", info_page["title"])
+        info_page["price_including_tax"] = soup.find("th", text="Price (incl. tax)").next_sibling.text  # [1:]
+        info_page["price_excluding_tax"] = soup.find("th", text="Price (excl. tax)").next_sibling.text  # [1:]
         info_page["number_available"] = soup.find("th", text="Availability").next_sibling.next_sibling.text
         product_description = soup.find(id="product_description")
-
         if product_description:
             info_page["product_description"] = soup.find(id="product_description").next_sibling.next_sibling.text
         else:
             info_page["product_description"] = "No product description available"
-
         info_page["category"] = soup.find_all("a")[3].text
         info_page["review_rating"] = soup.find("p", class_="star-rating").attrs["class"][1]
-        info_page["image_url"] = "https://books.toscrape.com/" + soup.find("img").attrs["src"]
+        info_page["image_url"] = "https://books.toscrape.com/" + "/".join(
+            soup.find("img").attrs["src"].split("/")[2:])  # soup.find("img").attrs["src"]
 
-        with open(file_title, "a", encoding="utf-8", newline='') as csvfile:
+        with open(datas_file_path, "a", encoding="utf-8", newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(info_page.values())
 
         img_url = requests.get(info_page["image_url"])
-        img_file = info_page["title"] + ".jpg"
-        with open(img_file, "wb") as file:
+        img_file = response.url.split("/")[-2][:166] + ".jpg"
+        print(os.path.join('images', img_file))
+        with open(os.path.join('images', img_file), "wb") as file:
             file.write(img_url.content)
 
-    return info_page
+        return info_page
 
 
 print(scrap_page("https://books.toscrape.com/catalogue/in-a-dark-dark-wood_963/index.html", "Mystery.csv"))

@@ -11,7 +11,7 @@ def gather_books(url, books_list):
     else:
         soup = BeautifulSoup(response.text, "html.parser")
         header_title = soup.find("li", class_="active").text
-        file_title = header_title + ".csv"
+        datas_file_path = os.path.join('data', header_title + ".csv")
         iterable = soup.find_all("h3")
         for i in iterable:
             part_url = i.find("a").get("href")
@@ -21,20 +21,21 @@ def gather_books(url, books_list):
             next_page_part_url = soup.find("li", class_="next").find("a").get("href")
             gather_books(construct_url_2(response.url, next_page_part_url), books_list)
 
-    with open(file_title, "w", newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow([header_title])
-        writer.writerow([
-            "Product page URL",
-            "Universal product code",
-            "Title", "Price including tax",
-            "Price excluding tax", "Number available",
-            "Product description",
-            "Review rating",
-            "Image URL"
-        ])
+        with open(datas_file_path, "w", newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([header_title])
+            writer.writerow([
+                "Product page URL",
+                "Universal product code",
+                "Title", "Price including tax",
+                "Price excluding tax", "Number available",
+                "Product description",
+                "Category",
+                "Review rating",
+                "Image URL"
+            ])
 
-    return [books_list, file_title]
+        return books_list, datas_file_path
 
 
 def construct_url(url, part_url):
