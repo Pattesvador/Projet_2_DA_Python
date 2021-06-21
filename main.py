@@ -49,7 +49,7 @@ def gather_books(url, books_list):
             "Image URL"
         ])
 
-    return [books_list, datas_file_path]
+    return books_list, datas_file_path
 
 
 def construct_url(url, part_url):
@@ -71,7 +71,7 @@ def construct_url_2(url, part_url):
     return url
 
 
-def scrap_page(url, datas_file_path):
+def scrap_page(url, data_file):
     response = requests.get(url)
     response.encoding = "utf-8"
 
@@ -91,15 +91,22 @@ def scrap_page(url, datas_file_path):
         info_page["product_description"] = "No product description available"
     info_page["category"] = soup.find_all("a")[3].text
     info_page["review_rating"] = soup.find("p", class_="star-rating").attrs["class"][1]
-    info_page["image_url"] = "https://books.toscrape.com/" + "/".join(soup.find("img").attrs["src"].split("/")[2:]) # soup.find("img").attrs["src"]
+    info_page["image_url"] = "https://books.toscrape.com/" + "/".join(
+        soup.find("img").attrs["src"].split("/")[2:])  # soup.find("img").attrs["src"]
 
-    with open(datas_file_path, "a", encoding="utf-8", newline='') as csvfile:
+    with open(data_file_path, "a", encoding="utf-8", newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(info_page.values())
 
     img_url = requests.get(info_page["image_url"])
     img_file = response.url.split("/")[-2][:166] + ".jpg"
     print(os.path.join('images', img_file))
+
+    try:
+        os.mkdir(os.getcwd() + '\\images')
+    except FileExistsError:
+        None
+
     with open(os.path.join('images', img_file), "wb") as file:
         file.write(img_url.content)
 
@@ -108,9 +115,9 @@ def scrap_page(url, datas_file_path):
 
 categories_list = gather_categories(("https://books.toscrape.com/index.html"))
 for category in categories_list:
-    category_books_list, datas_file_path = gather_books(category, books_list=[])
+    category_books_list, data_file_path = gather_books(category, books_list=[])
     for book in category_books_list:
-        scrap_page(book, datas_file_path)
+        scrap_page(book, data_file_path)
 
 
 
