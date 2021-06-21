@@ -36,6 +36,12 @@ def scrap_page(url, datas_file_path):
         img_url = requests.get(info_page["image_url"])
         img_file = response.url.split("/")[-2][:166] + ".jpg"
         print(os.path.join('images', img_file))
+
+        try:
+            os.mkdir(os.getcwd() + '\\images')
+        except FileExistsError:
+            None
+
         with open(os.path.join('images', img_file), "wb") as file:
             file.write(img_url.content)
 
