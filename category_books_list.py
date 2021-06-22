@@ -14,6 +14,7 @@ def gather_books(url, books_list):
         header_title = soup.find("li", class_="active").text
         datas_file_path = os.path.join('data', header_title + ".csv")
         iterable = soup.find_all("h3")
+
         for i in iterable:
             part_url = i.find("a").get("href")
             books_list.append(construct_url("https://books.toscrape.com/catalogue/", part_url))
@@ -21,6 +22,11 @@ def gather_books(url, books_list):
             # print(soup.find("li", class_="next").find("a").get('href'))
             next_page_part_url = soup.find("li", class_="next").find("a").get("href")
             gather_books(construct_url_2(response.url, next_page_part_url), books_list)
+
+        try:
+            os.mkdir(os.getcwd() + "\\data")
+        except FileExistsError:
+            None
 
         with open(datas_file_path, "w", newline='') as csvfile:
             writer = csv.writer(csvfile)
