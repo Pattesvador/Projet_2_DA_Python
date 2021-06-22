@@ -4,9 +4,12 @@ import csv
 import os
 
 
-def gather_books(url, books_list):
+def gather_books(url):
     response = requests.get(url)
-    # books_list = []
+    if "books_list" not in globals():
+        global books_list
+        books_list = []
+
     if not response:
         print("Nope!")
     else:
@@ -21,7 +24,7 @@ def gather_books(url, books_list):
         if soup.find("li", class_="next"):
             # print(soup.find("li", class_="next").find("a").get('href'))
             next_page_part_url = soup.find("li", class_="next").find("a").get("href")
-            gather_books(construct_url_2(response.url, next_page_part_url), books_list)
+            gather_books(construct_url_2(response.url, next_page_part_url))
 
         try:
             os.mkdir(os.getcwd() + "\\data")
@@ -64,10 +67,7 @@ def construct_url_2(url, part_url):
     return url
 
 
-# var = "\n".join(gather_books("https://books.toscrape.com/catalogue/category/books/travel_2/index.html"))
-# print(var)
-# print(len(gather_books("https://books.toscrape.com/catalogue/category/books/travel_2/index.html")))
-var = "\n".join(gather_books("https://books.toscrape.com/catalogue/category/books/mystery_3/index.html", books_list=[])[0])
-print(var, len(gather_books("https://books.toscrape.com/catalogue/category/books/mystery_3/index.html", books_list=[])[0]))
-# var = "\n".join(gather_books("https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html", books_list = []))
-# print(var)
+var, chemin = gather_books("https://books.toscrape.com/catalogue/category/books/mystery_3/index.html")
+lenvar = len(var)
+var = "\n".join(var)
+print(var, lenvar)
