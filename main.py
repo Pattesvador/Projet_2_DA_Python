@@ -3,12 +3,9 @@ from bs4 import BeautifulSoup
 import csv
 import os
 
-# url = "https://books.toscrape.com/index.html"
-# response = requests.get(url)
-
 
 def gather_categories(url):
-    """Récupère les url de toutes les catégories"""
+    """Récupère les url de toutes les catégories en utilisant l'url de la home page et en retourne la liste"""
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
     categories = soup.find("div", class_="side_categories").find_all("a")
@@ -20,64 +17,25 @@ def gather_categories(url):
     return categories_url
 
 
-def gather_books(url, books_list):
-    print("Récupération de la catégorie ", url)
+def gather_books(url):
+    """Récupère les URL de tous les livres pour une catégorie en utilisant gather_categories et en retourne la liste"""
+    books_list = []
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
-    header_title = soup.find("li", class_="active").text
-    datas_file_path = os.path.join('data', header_title + ".csv")
     iterable = soup.find_all("h3")
 
     for i in iterable:
         part_url = i.find("a").get("href")
-        books_list.append(construct_url("https://books.toscrape.com/catalogue/", part_url))
+        books_list.append("https://books.toscrape.com/catalogue/" + "/".join(part_url.split("/")[3:]))
     if soup.find("li", class_="next"):
-        # print(soup.find("li", class_="next").find("a").get('href'))
         next_page_part_url = soup.find("li", class_="next").find("a").get("href")
-        gather_books(construct_url_2(response.url, next_page_part_url), books_list)
+        books_list.extend(gather_books("/".join(url.split("/")[:-1]) + "/" + next_page_part_url))
 
-    try:
-        os.mkdir(os.getcwd() + "\\data")
-    except FileExistsError:
-        None
-
-    with open(datas_file_path, "w", newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow([header_title])
-        writer.writerow([
-            "Product page URL",
-            "Universal product code",
-            "Title", "Price including tax",
-            "Price excluding tax", "Number available",
-            "Product description",
-            "Category",
-            "Review rating",
-            "Image URL"
-        ])
-
-    return books_list, datas_file_path
+    return books_list
 
 
-def construct_url(url, part_url):
-    part_url = part_url.split("/")
-    part_url = list(dict.fromkeys(part_url))
-    part_url.pop(0)
-    part_url = "/".join(part_url)
-    url = url + part_url
-
-    return url
-
-
-def construct_url_2(url, part_url):
-    url = url.split("/")
-    url.pop(-1)
-    url.append(part_url)
-    url = "/".join(url)
-
-    return url
-
-
-def scrap_page(url, data_file_path):
+def scrap_page(url):
+    """Récupère les informations demandées pour un livre et les retourne dans un dictionnaire"""
     response = requests.get(url)
     response.encoding = "utf-8"
 
@@ -97,50 +55,88 @@ def scrap_page(url, data_file_path):
         info_page["product_description"] = "No product description available"
     info_page["category"] = soup.find_all("a")[3].text
     info_page["review_rating"] = soup.find("p", class_="star-rating").attrs["class"][1]
-    info_page["image_url"] = "https://books.toscrape.com/" + "/".join(
-        soup.find("img").attrs["src"].split("/")[2:])  # soup.find("img").attrs["src"]
+    info_page["image_url"] = "https://books.toscrape.com/" + "/".join(soup.find("img").attrs["src"].split("/")[2:])
 
-    with open(data_file_path, "a", encoding="utf-8", newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(info_page.values())
-
-    img_url = requests.get(info_page["image_url"])
-    img_file = response.url.split("/")[-2][:166] + ".jpg"
-    print(os.path.join('images', img_file))
-
-    try:
-        os.mkdir(os.getcwd() + '\\images')
-    except FileExistsError:
-        None
-
-    with open(os.path.join('images', img_file), "wb") as file:
-        file.write(img_url.content)
+    write_csv(info_page['category'], info_page)
 
     return info_page
 
 
-categories_list = gather_categories(("https://books.toscrape.com/index.html"))
-for category in categories_list:
-    category_books_list, data_file_path = gather_books(category, books_list=[])
-    for book in category_books_list:
-        scrap_page(book, data_file_path)
+def create_csv(url):
+    """Crée un fichier CSV avec un en-tête et le retourne"""
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    file_name = soup.find("div", class_="page-header action").find("h1").text + ".csv"
+    with open(os.path.join('data',file_name), "a", encoding="utf-8", newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow([file_name])
+
+    return file_name
 
 
+def columns_csv(file):
+    """crée les en-tête des colonnes dans un fichier CSV """
+    columns = [
+        "Product page URL",
+        "Universal product code",
+        "Title",
+        "Price including tax",
+        "Price excluding tax",
+        "number available",
+        "Product description",
+        "Category",
+        "Review rating",
+        "Image URL",
+    ]
 
-'''
-categories_list = gather_categories("https://books.toscrape.com/index.html")
-# all_books_list = []
-for i in categories_list:
-    all_books_list.extend(gather_books(i, books_list = []))
+    with open(os.path.join('data', file), "a", encoding="utf-8", newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(columns)
 
-all_books_infos = []
-for i in all_books_list:
-    all_books_infos.append(scrap_page(i))
+    return file
 
-print(all_books_infos[0], all_books_infos[499], all_books_infos[999])
-print(len(all_books_infos))
-# var = "\n".join(all_books_list)
-# print(var)
-'''
+def write_csv(file, dictionnary):
+    """Ecris une ligne dans le fichier CSV en utilisant le dictionnaire retourné par scrap_page"""
+    with open(os.path.join('data', (file + ".csv")), "a", encoding="utf-8", newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(dictionnary.values())
+
+def get_image(title, img_url, compteur):
+    """Télécharge l'image d'un livre"""
+    file_name = str(compteur) + "-" + conv_file_name(title)[:171] + ".jpg"
+    print("Téléchargement de l'image : ", file_name)
+    response = requests.get(img_url)
+
+    with open(os.path.join('images', file_name), "wb") as picture:
+        picture.write(response.content)
 
 
+def conv_file_name(title):
+    """Vérifie et ôte si besoin les caractères interdits dans les noms de fichiers windows"""
+    forbidden_char = ["/", "\\", ":", "*", "?", "\"", "<", ">", "|"]
+    for i in title:
+        if i in forbidden_char:
+            title = title.replace(i, " ")
+
+    return title
+
+
+# instructions
+try:
+    os.mkdir(os.getcwd() + '\\data')
+except FileExistsError:
+    pass
+try:
+    os.mkdir(os.getcwd() + '\\images')
+except FileExistsError:
+    pass
+
+compteur = 1
+
+for category in gather_categories("https://books.toscrape.com"):
+    columns_csv(create_csv(category))
+    for books in gather_books(category):
+        print(category)
+        book_infos = scrap_page(books)
+        get_image(book_infos['title'], book_infos['image_url'], compteur)
+        compteur += 1
